@@ -1,0 +1,254 @@
+let timer = 0
+let timerRunning = false
+let ground = true
+let twoSeconds = true
+let distance = 0
+let motor = false
+let breakLoop = true
+
+let ones = 0
+let tens = 0
+let hundreds = 0
+let allThree = 0
+
+// add 1 minute to the timer
+input.buttonA.onEvent(ButtonEvent.Click, function () {
+
+    // this turns off the light that was on
+    light.setPixelColor(ones - 1, 0)
+    light.setPixelColor(tens - 1, 0)
+    light.setPixelColor(hundreds - 1, 0)
+
+    timer += 1
+    ones += 1
+
+    // when ones is higher than 9, remove 10 to correct it
+    if (ones > 9) {
+        ones -= 10
+        tens++
+    }
+
+    // when tens is higher than 9, remove 10 to correct it
+    if (tens > 9) {
+        tens -= 10
+        hundreds++
+    }
+
+    // this turns on the next light
+    light.setPixelColor(ones - 1, Colors.Red)
+    light.setPixelColor(tens - 1, Colors.Blue)
+    light.setPixelColor(hundreds - 1, Colors.Green)
+
+
+
+
+})
+
+// add 5 minutes to the timer
+input.buttonB.onEvent(ButtonEvent.Click, function () {
+    light.setPixelColor(ones - 1, 0)
+    light.setPixelColor(tens - 1, 0)
+    light.setPixelColor(hundreds - 1, 0)
+
+    timer += 5
+    ones += 5
+    if (ones > 9) {
+        ones -= 10
+        tens++
+    }
+    if (tens > 9) {
+        tens -= 10
+        hundreds++
+    }
+    light.setPixelColor(ones - 1, Colors.Red)
+    light.setPixelColor(tens - 1, Colors.Blue)
+    light.setPixelColor(hundreds - 1, Colors.Green)
+
+
+})
+
+
+//adds 10 minutes to the timer
+input.buttonsAB.onEvent(ButtonEvent.Click, function () {
+    light.setPixelColor(ones - 1, 0)
+    light.setPixelColor(tens - 1, 0)
+    light.setPixelColor(hundreds - 1, 0)
+
+    timer += 10
+    tens += 1
+    if (ones > 9) {
+        ones -= 10
+        tens++
+    }
+    if (tens > 9) {
+        tens -= 10
+        hundreds++
+    }
+    light.setPixelColor(ones - 1, Colors.Red)
+    light.setPixelColor(tens - 1, Colors.Blue)
+    light.setPixelColor(hundreds - 1, Colors.Green)
+
+})
+
+
+//long click on B resets everything
+input.buttonB.onEvent(ButtonEvent.LongClick, function () {
+    timer = 0
+    ones = 0
+    tens = 0
+    hundreds = 0
+    light.setAll(0)
+    timerRunning = false
+    crickit.motor2.stop()
+    crickit.motor1.stop()
+    motor = false
+})
+
+loops.forever(function () {
+    //this constantly tracks the distance between the detector and the nearest object, and sets the variable 'distance' to that
+    pins.A2.digitalWrite(false)
+    control.waitMicros(2)
+    pins.A2.digitalWrite(true)
+    control.waitMicros(10)
+    pins.A2.digitalWrite(false)
+
+    distance = pins.A3.pulseIn(PulseValue.High) / 58
+    console.log(distance)
+    if (distance < 10) {
+        ground = true
+        console.log(ground)
+    } else {
+        ground = false
+        console.log(ground)
+    }
+})
+
+
+
+// count down system
+loops.forever(function () {
+    if (timerRunning === true) {
+        if (timer > 0) {
+            pause(1000)
+            light.setPixelColor(ones - 1, 0)
+            light.setPixelColor(tens - 1, 0)
+            light.setPixelColor(hundreds - 1, 0)
+
+            timer -= 1
+            ones -= 1
+            if (ones === -1) {
+                ones = 9
+                tens -= 1
+
+            }
+
+            if (tens === -1) {
+                tens = 9
+                hundreds -= 1
+
+            }
+
+            light.setPixelColor(ones - 1, Colors.Red)
+            light.setPixelColor(tens - 1, Colors.Blue)
+            light.setPixelColor(hundreds - 1, Colors.Green)
+
+
+        } else {
+            motor = true
+            light.showAnimation(light.cometAnimation, 10000)
+            light.setAll(Colors.Black)
+
+        }
+    }
+
+})
+
+
+
+loops.forever(function () {
+    if (motor) {
+        if (ground && breakLoop) {
+            crickit.motor2.stop()
+            crickit.motor1.stop()
+            breakLoop = false
+
+            pause(500)
+
+            crickit.motor1.run(-60)
+            crickit.motor2.run(-60)
+            console.log(`forward`)
+        }
+
+        if (!ground) {
+
+            crickit.motor2.stop()
+            crickit.motor1.stop()
+
+            pause(500)
+
+            crickit.motor1.run(60)
+            crickit.motor2.run(60)
+            console.log(`backward`)
+            pause(2000)
+            breakLoop = true
+        }
+    }
+})
+
+
+// long click on A starts the timer
+input.buttonA.onEvent(ButtonEvent.LongClick, function () {
+    timerRunning = true
+})
+
+
+// shaking turns off the motors and the lights
+input.onGesture(Gesture.Shake, function () {
+    light.setAll(0)
+    crickit.motor1.stop()
+    crickit.motor2.stop()
+})
+
+
+// this part makes it so that when theres 2 lights on the same pixel, they start alternating
+loops.forever(function () {
+    if (ones === tens && ones !== 0 && tens !== 0 && allThree === 0) {
+        pause(10)
+        light.setPixelColor(ones - 1, Colors.Blue)
+        pause(300)
+        light.setPixelColor(ones - 1, Colors.Red)
+        pause(300)
+
+
+    }
+
+    if (ones === hundreds && ones !== 0 && hundreds !== 0 && allThree === 0) {
+        pause(10)
+        light.setPixelColor(ones - 1, Colors.Green)
+        pause(300)
+        light.setPixelColor(ones - 1, Colors.Red)
+        pause(300)
+    }
+
+    if (tens === hundreds && tens !== 0 && hundreds !== 0 && allThree === 0) {
+        pause(10)
+        light.setPixelColor(tens - 1, Colors.Green)
+        pause(300)
+        light.setPixelColor(tens - 1, Colors.Blue)
+        pause(300)
+    }
+
+    if (ones === tens && tens === hundreds && ones !== 0 && tens !== 0 && hundreds !== 0) {
+        allThree = 1
+        pause(10)
+        light.setPixelColor(ones - 1, Colors.Green)
+        pause(300)
+        light.setPixelColor(ones - 1, Colors.Blue)
+        pause(300)
+        light.setPixelColor(ones - 1, Colors.Red)
+        pause(300)
+    } else {
+        allThree = 0
+    }
+})
+
