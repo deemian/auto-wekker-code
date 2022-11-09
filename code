@@ -1,107 +1,107 @@
-let timer = 0
-let timerRunning = false
-let ground = true
-let twoSeconds = true
-let distance = 0
-let motor = false
-let breakLoop = true
+let timer = 0 // This is the total number of minutes in the timer (increases by pressing buttons and decreases when time is ticking down)
+let timerRunning = false //indicates if the timer is running or not
+let ground = true //indicates if the car sees ground under it or not (true means there's ground)
+let distance = 0 //this is the distance between the car and the nearest object UNDER the car
+let motor = false //indicates if the motor is on or not
+let breakLoop = true //used to break the loop in the motor section
+const distanceThreshold = 10 //if the distance between the car and the ground is greater than this, it should go in reverse
+const distanceDivider = 58 //divide by this to get the correct distance calculated
 
-let ones = 0
-let tens = 0
-let hundreds = 0
-let allThree = 0
+
+let digits: number[] = [0, 0, 0, 0, 0, 0, 0] // This stores every single digit in the minute counter, so 342 minutes would be 3, 4, 2. It's an array so it's very easy to add more digits
+
+
+//this function sets all lights to the correct color (assigns a color to every digit in the number) This can easily be expanded by adding more lines with more colors
+function setAllLights() {
+    light.setPixelColor(digits[0] - 1, Colors.Red)
+    light.setPixelColor(digits[1] - 1, Colors.Blue)
+    light.setPixelColor(digits[2] - 1, Colors.Green)
+    light.setPixelColor(digits[3] - 1, Colors.Orange)
+    light.setPixelColor(digits[4] - 1, Colors.Yellow)
+}
+
+//this function adds a minute to the timer (and corrects the displayed lights)
+function addMinutes(minutes: number) {
+    light.clear()
+    timer += minutes
+    digits[0] += minutes
+    correctDigits()
+    setAllLights()
+}
+
+
+//this function corrects digits when they go over 9 or go below 0, because for example if it goes to 10, it should go back to 0
+function correctDigits() {
+    for (let i = 0; i < digits.length; i++) {
+        if (digits[i] > 9) {
+            digits[i] -= 10
+            digits[i + 1]++
+        }
+    }
+
+    for (let i = 0; i < digits.length; i++) {
+        if (digits[i] === -1) {
+            digits[i] = 9
+            digits[i + 1] -= 1
+        }
+    }
+}
+
+// these functions start the alternating of lights when 2 or more digits are the same number
+function alternatingLights(c1: number, c2: number) {
+    pause(10)
+    light.setPixelColor(digits[0] - 1, c1)
+    pause(300)
+    light.setPixelColor(digits[0] - 1, c2)
+    pause(300)
+}
+
+function alternatingLights2(c1: number, c2: number) {
+    pause(10)
+    light.setPixelColor(digits[1] - 1, c1)
+    pause(300)
+    light.setPixelColor(digits[1] - 1, c2)
+    pause(300)
+}
+
+function threeAlternatingLights(c1: number, c2: number, c3: number) {
+    pause(10)
+    light.setPixelColor(digits[0] - 1, c1)
+    pause(300)
+    light.setPixelColor(digits[0] - 1, c2)
+    pause(300)
+    light.setPixelColor(digits[0] - 1, c3)
+    pause(300)
+}
 
 // add 1 minute to the timer
 input.buttonA.onEvent(ButtonEvent.Click, function () {
-
-    // this turns off the light that was on
-    light.setPixelColor(ones - 1, 0)
-    light.setPixelColor(tens - 1, 0)
-    light.setPixelColor(hundreds - 1, 0)
-
-    timer += 1
-    ones += 1
-
-    // when ones is higher than 9, remove 10 to correct it
-    if (ones > 9) {
-        ones -= 10
-        tens++
-    }
-
-    // when tens is higher than 9, remove 10 to correct it
-    if (tens > 9) {
-        tens -= 10
-        hundreds++
-    }
-
-    // this turns on the next light
-    light.setPixelColor(ones - 1, Colors.Red)
-    light.setPixelColor(tens - 1, Colors.Blue)
-    light.setPixelColor(hundreds - 1, Colors.Green)
-
-
-
-
+    addMinutes(1)
 })
 
 // add 5 minutes to the timer
 input.buttonB.onEvent(ButtonEvent.Click, function () {
-    light.setPixelColor(ones - 1, 0)
-    light.setPixelColor(tens - 1, 0)
-    light.setPixelColor(hundreds - 1, 0)
-
-    timer += 5
-    ones += 5
-    if (ones > 9) {
-        ones -= 10
-        tens++
-    }
-    if (tens > 9) {
-        tens -= 10
-        hundreds++
-    }
-    light.setPixelColor(ones - 1, Colors.Red)
-    light.setPixelColor(tens - 1, Colors.Blue)
-    light.setPixelColor(hundreds - 1, Colors.Green)
-
-
+    addMinutes(5)
 })
 
 
 //adds 10 minutes to the timer
 input.buttonsAB.onEvent(ButtonEvent.Click, function () {
-    light.setPixelColor(ones - 1, 0)
-    light.setPixelColor(tens - 1, 0)
-    light.setPixelColor(hundreds - 1, 0)
-
-    timer += 10
-    tens += 1
-    if (ones > 9) {
-        ones -= 10
-        tens++
-    }
-    if (tens > 9) {
-        tens -= 10
-        hundreds++
-    }
-    light.setPixelColor(ones - 1, Colors.Red)
-    light.setPixelColor(tens - 1, Colors.Blue)
-    light.setPixelColor(hundreds - 1, Colors.Green)
-
+    addMinutes(10)
 })
-
 
 //long click on B resets everything
 input.buttonB.onEvent(ButtonEvent.LongClick, function () {
     timer = 0
-    ones = 0
-    tens = 0
-    hundreds = 0
+    for (let i = 0; i < digits.length; i++) {
+        digits[i] = 0
+    }
     light.setAll(0)
     timerRunning = false
     crickit.motor2.stop()
     crickit.motor1.stop()
     motor = false
+    breakLoop = false
 })
 
 loops.forever(function () {
@@ -112,9 +112,9 @@ loops.forever(function () {
     control.waitMicros(10)
     pins.A2.digitalWrite(false)
 
-    distance = pins.A3.pulseIn(PulseValue.High) / 58
+    distance = pins.A3.pulseIn(PulseValue.High) / distanceDivider
     console.log(distance)
-    if (distance < 10) {
+    if (distance < distanceThreshold) {
         ground = true
         console.log(ground)
     } else {
@@ -123,50 +123,38 @@ loops.forever(function () {
     }
 })
 
-
+// long click on A starts the timer
+input.buttonA.onEvent(ButtonEvent.LongClick, function () {
+    timerRunning = true
+})
 
 // count down system
 loops.forever(function () {
     if (timerRunning === true) {
         if (timer > 0) {
             pause(1000)
-            light.setPixelColor(ones - 1, 0)
-            light.setPixelColor(tens - 1, 0)
-            light.setPixelColor(hundreds - 1, 0)
+            light.clear()
 
             timer -= 1
-            ones -= 1
-            if (ones === -1) {
-                ones = 9
-                tens -= 1
+            digits[0] -= 1
 
-            }
+            correctDigits()
 
-            if (tens === -1) {
-                tens = 9
-                hundreds -= 1
+            setAllLights()
 
-            }
-
-            light.setPixelColor(ones - 1, Colors.Red)
-            light.setPixelColor(tens - 1, Colors.Blue)
-            light.setPixelColor(hundreds - 1, Colors.Green)
-
-
+            // when the timer is at 0 this starts
         } else {
             motor = true
             light.showAnimation(light.cometAnimation, 10000)
             light.setAll(Colors.Black)
-
         }
     }
-
 })
 
-
-
+//this section controls wether the car should be going forward or backwards
 loops.forever(function () {
     if (motor) {
+        //if ground = true it can go forward, but we only want to start the motors once so we use breakLoop to not constantly start the motors over and over
         if (ground && breakLoop) {
             crickit.motor2.stop()
             crickit.motor1.stop()
@@ -177,9 +165,9 @@ loops.forever(function () {
             crickit.motor1.run(-60)
             crickit.motor2.run(-60)
             console.log(`forward`)
-        }
 
-        if (!ground) {
+            // if ground = false it means there's a fall in front of the car, so the motors get stopped and put in reverse
+        } else if (!ground) {
 
             crickit.motor2.stop()
             crickit.motor1.stop()
@@ -195,60 +183,21 @@ loops.forever(function () {
     }
 })
 
-
-// long click on A starts the timer
-input.buttonA.onEvent(ButtonEvent.LongClick, function () {
-    timerRunning = true
-})
-
-
-// shaking turns off the motors and the lights
-input.onGesture(Gesture.Shake, function () {
-    light.setAll(0)
-    crickit.motor1.stop()
-    crickit.motor2.stop()
-})
-
-
 // this part makes it so that when theres 2 lights on the same pixel, they start alternating
 loops.forever(function () {
-    if (ones === tens && ones !== 0 && tens !== 0 && allThree === 0) {
-        pause(10)
-        light.setPixelColor(ones - 1, Colors.Blue)
-        pause(300)
-        light.setPixelColor(ones - 1, Colors.Red)
-        pause(300)
-
-
+    if (digits[0] === digits[1] && digits[0] !== 0) {
+        alternatingLights(Colors.Blue, Colors.Red)
     }
 
-    if (ones === hundreds && ones !== 0 && hundreds !== 0 && allThree === 0) {
-        pause(10)
-        light.setPixelColor(ones - 1, Colors.Green)
-        pause(300)
-        light.setPixelColor(ones - 1, Colors.Red)
-        pause(300)
+    if (digits[0] === digits[2] && digits[0] !== 0) {
+        alternatingLights(Colors.Green, Colors.Red)
     }
 
-    if (tens === hundreds && tens !== 0 && hundreds !== 0 && allThree === 0) {
-        pause(10)
-        light.setPixelColor(tens - 1, Colors.Green)
-        pause(300)
-        light.setPixelColor(tens - 1, Colors.Blue)
-        pause(300)
+    if (digits[1] === digits[2] && digits[1] !== 0) {
+        alternatingLights2(Colors.Green, Colors.Blue)
     }
 
-    if (ones === tens && tens === hundreds && ones !== 0 && tens !== 0 && hundreds !== 0) {
-        allThree = 1
-        pause(10)
-        light.setPixelColor(ones - 1, Colors.Green)
-        pause(300)
-        light.setPixelColor(ones - 1, Colors.Blue)
-        pause(300)
-        light.setPixelColor(ones - 1, Colors.Red)
-        pause(300)
-    } else {
-        allThree = 0
+    if (digits[0] === digits[1] && digits[1] === digits[2] && digits[0] !== 0) {
+        threeAlternatingLights(Colors.Green, Colors.Blue, Colors.Red)
     }
-})
-
+}) 
